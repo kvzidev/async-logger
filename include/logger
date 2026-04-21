@@ -1,0 +1,84 @@
+#pragma once
+
+#include <logger.h>
+#include <async_logger/custom.h>
+#include <async_logger/types.h>
+
+#include <memory>
+
+namespace async_logger {
+  
+using Status = Logger_Status;
+using Level = Logger_Level;
+
+/**
+ * @brief C++ Wrapper for the async logger.
+ */
+class Logger {
+ public:
+  static constexpr Status OK = Logger_OK;
+  static constexpr Status FileOpenError = Logger_Error_File_Open;
+  static constexpr Status WriteError = Logger_Error_Write;
+  static constexpr Status Uninitialized = Logger_Error_Uninitialized;
+
+  static Logger New(const char *filename, int flags);
+
+  Logger() : m_handle(nullptr) {}
+  ~Logger();
+
+  Logger(const Logger &) = delete;
+  Logger &operator=(const Logger &) = delete;
+
+  Logger(Logger &&other) noexcept : m_handle(other.m_handle) {
+    other.m_handle = nullptr;
+  }
+
+  Logger &operator=(Logger &&other) noexcept {
+    if (this != &other) {
+      this->Free();
+      m_handle = other.m_handle;
+      other.m_handle = nullptr;
+    }
+    return *this;
+  }
+
+  void Log(Level level, const char *message);
+  void AddSink(std::unique_ptr<LogSink> sink);
+  void SetFormatter(std::unique_ptr<LogFormatter> formatter);
+  void Flush();
+  void Free();
+
+  Status GetStatus() const;
+  void SetStatus(Status status);
+  void SetMaxFileSize(std::size_t bytes);
+  void SetMaxFiles(int count);
+
+  explicit operator bool() const { return m_handle != nullptr; }
+
+#define ASYNC_LOGGER_GEN_METHOD(name, level_enum, level_val)                   \
+  void name(const char *message) {                                             \
+    if constexpr (ASYNC_LOGGER_MIN_LEVEL <= level_val) {                       \
+      Log(Logger_Level_##level_enum, message);                                 \
+    } else {                                                                   \
+      (void)message;                                                           \
+    }                                                                          \
+  }
+
+  ASYNC_LOGGER_GEN_METHOD(Trace, Trace, ASYNC_LOGGER_LEVEL_TRACE)
+  ASYNC_LOGGER_GEN_METHOD(Debug, Debug, ASYNC_LOGGER_LEVEL_DEBUG)
+  ASYNC_LOGGER_GEN_METHOD(Info, Info, ASYNC_LOGGER_LEVEL_INFO)
+  ASYNC_LOGGER_GEN_METHOD(Warn, Warn, ASYNC_LOGGER_LEVEL_WARN)
+  ASYNC_LOGGER_GEN_METHOD(Error, Error, ASYNC_LOGGER_LEVEL_ERROR)
+  ASYNC_LOGGER_GEN_METHOD(Fatal, Fatal, ASYNC_LOGGER_LEVEL_FATAL)
+#undef ASYNC_LOGGER_GEN_METHOD
+
+  void SetHandleForCAPIOnly(struct LoggerHandle *handle) {
+    m_handle = reinterpret_cast<struct LoggerHandle *>(handle);
+  }
+
+ private:
+  struct LoggerHandle *m_handle;
+  explicit Logger(struct LoggerHandle *handle) : m_handle(handle) {}
+};
+
+}  // namespace async_logger

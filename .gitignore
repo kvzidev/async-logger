@@ -1,0 +1,37 @@
+# Build directories
+build/
+bin/
+out/
+
+# Log files
+*.log
+
+# C++ / CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeSettings.json
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.vs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.py
+
+# OS
+.DS_Store
+Thumbs.db
